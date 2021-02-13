@@ -1,0 +1,58 @@
+* ~itm-tools~, but with probe-rs
+
+This is a fork of [[https://github.com/japaric/itm-tools][japaric's itm-tools]] that aims to reproduce the feature
+of ITM exception tracing by use of probe-rs instead of openocd.
+Additionally, the ITM packet buffer on the STLink is used instead of an
+external UART adapter.
+
+*NOTE:* An stm32f401re target is expected.
+
+In a nutshell:
+#+begin_src fundamental
+  $ cargo run --bin debugger
+  Found 1 probe(s): [
+      STLink V2-1 (VID: 0483, PID: 374b, Serial: 0671FF485151717867171923, STLink),
+  ]
+  Opening the first probe...
+  Attaching under reset...
+  Flashing application...
+      Finished dev [unoptimized + debuginfo] target(s) in 0.06s
+  Recording all ITM packets to File {
+      fd: 13,
+      path: "/path/to/itm-tools/itm.bin",
+      read: false,
+      write: true,
+  }
+  Done.
+  $ cargo run --bin itm-decode -- itm.bin
+  ExceptionTrace { function: Enter, number: 22 }
+  LocalTimestamp { delta: 39, tc: 0, len: 2 }
+  ExceptionTrace { function: Enter, number: 24 }
+  LocalTimestamp { delta: 183, tc: 0, len: 3 }
+  ExceptionTrace { function: Exit, number: 24 }
+  LocalTimestamp { delta: 1078, tc: 0, len: 3 }
+  ExceptionTrace { function: Enter, number: 23 }
+  LocalTimestamp { delta: 3, tc: 0, len: 1 }
+  ExceptionTrace { function: Exit, number: 23 }
+  LocalTimestamp { delta: 565, tc: 0, len: 3 }
+  ExceptionTrace { function: Return, number: 22 }
+  LocalTimestamp { delta: 7, tc: 0, len: 2 }
+  ExceptionTrace { function: Enter, number: 0 }
+  LocalTimestamp { delta: 39185, tc: 0, len: 4 }
+  LocalTimestamp { delta: 1999999, tc: 0, len: 4 }
+  LocalTimestamp { delta: 1999999, tc: 0, len: 4 }
+  ExceptionTrace { function: Enter, number: 0 }
+  LocalTimestamp { delta: 1487802, tc: 0, len: 4 }
+  $ cargo run --bin excevt -- -t itm.bin
+   TIMESTAMP   EXCEPTION
+  !000000000 → IRQ(6)
+  =000000183 → IRQ(8)
+  =000001261 ← IRQ(8)
+  =000001264 → IRQ(7)
+  =000001829 ← IRQ(7)
+  =000001836 ↓ IRQ(6)
+  =000041021 → Thread
+  =005528823 → Thread
+#+end_src
+See upsteam documentation on how to intepret the output of ~itm-decode~
+and ~excevt~.
