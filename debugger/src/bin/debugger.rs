@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use probe_rs::{
     architecture::arm::component::{Dwt, Itm, enable_tracing},
-    architecture::arm::swo::SwoConfig,
+    architecture::arm::swo::{SwoConfig, Decoder},
     flashing::{self, Format},
     Core, MemoryInterface, Probe,
 };
@@ -61,10 +61,15 @@ fn main() -> Result<()> {
 
     println!("Flashing application...");
     flash_program(&mut session)?;
-
     let mut f = File::create("./itm.bin")?;
-    println!("Recording all ITM packets to {:#?}", f);
+    println!("Tracing application and recording all packets to {:#?}...", f);
+
+    let mut decoder = Decoder::new();
     while let Ok(bytes) = session.read_swo() {
+        decoder.feed(bytes.clone());
+        while let Some(packet) = decoder.pull() {
+            println!("{:?}", packet);
+        }
         if bytes.len() > 0 {
             f.write_all(&bytes)?;
         }
