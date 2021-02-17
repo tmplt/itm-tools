@@ -44,10 +44,13 @@ fn main() -> Result<()> {
     enable_tracing(&mut core)?;
 
     Dwt::new(&mut core, &comp).enable_exception_trace()?;
-    const DWT_CTRL_ADDR: u32 = 0xE0001000;
-    let mut ctrl: u32 = core.read_word_32(DWT_CTRL_ADDR)?;
-    ctrl &= !(1 << 12); // clear PCSAMLENA; not handled properly by itm-tools encoder
-    ensure_write_word_32(&mut core, DWT_CTRL_ADDR, ctrl)?;
+    {
+        const DWT_CTRL_ADDR: u32 = 0xE0001000;
+        let mut ctrl: u32 = core.read_word_32(DWT_CTRL_ADDR)?;
+        ctrl |= 1 << 16; // set EXCTRCRENA
+        ctrl &= !(1 << 12); // clear PCSAMLENA
+        ensure_write_word_32(&mut core, DWT_CTRL_ADDR, ctrl)?;
+    }
 
     let mut itm = Itm::new(&mut core, &comp);
     itm.unlock()?;
